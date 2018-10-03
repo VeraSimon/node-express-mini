@@ -1,30 +1,89 @@
 // implement your API here
-// node - how to import/export code between files
 // introduce how routing works
 
-// import express from 'express'; //ES2015 modules, export default someCode;
-const express = require('express'); //CommonJS modules, module.exports = someCode;
-const cors = require('cors');
-const db = require('./data/db');
+// import express from 'express'; // ES2015 modules > export default someCode;
+const express = require('express'); // CommonJS modules > module.exports = someCode;
+const cors = require('cors'); // install this package to connect from react
+
+const db = require('./data/db.js');
 
 const server = express(); // creates the server
 
-server.use(cors());
+server.use(cors()); // this needed to connect from react
+
+server.use(express.json()); // formatting our req.body obj.
 
 server.get('/', (req, res) => {
-    // req/res handler
-    res.send('<p>Leroy Jenkins!!!</p>')
+  //< ---- Route Handler ^^^
+  // request/route handler
+  res.send('<h1>Hello FSW13!</h1>');
 });
+
+server.get('/api/about', (req, res) => {
+  res.status(200).send('<h1>About Us</h1>');
+});
+
+server.get('/api/contact', (req, res) => {
+  res
+    .status(200)
+    .send('<div><h1>Contact</h1><input placeholder="email" /></div>');
+});
+
+// #################### USERS #######################
 
 server.get('/api/users', (req, res) => {
-    db.find()
-        .then((users) => {
-            console.log('\n** users **\n', users);
-            res.json(users);
-        })
-        .catch((err) => res.send(err));
+  db.find()
+    .then(users => {
+      res.json(users);
+    })
+    .catch(err => res.send(err));
 });
 
-// watch for traffic on a particular port
-const port = 9001;
-server.listen(port, () => console.log(`API running on port ${port}`));
+server.post('/api/users', (req, res) => {
+  const { name, bio } = req.body;
+  const newUser = { name, bio };
+  db.insert(newUser)
+    .then(userId => {
+      const { id } = userId;
+      db.findById(id).then(user => {
+        console.log(user);
+        if (!user) {
+          return res
+            .status(422)
+            .send({ "Error": `User does not exist by that id ${id}` });
+        }
+        res.status(201).json(user);
+      });
+    })
+    .catch(err => console.error(err));
+});
+
+server.delete('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  db.remove(id)
+    .then(removedUser => {
+      console.log(removedUser);
+      res.status(200).json(removedUser);
+    })
+    .catch(err => console.error(err));
+});
+
+server.put('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, bio } = req.body;
+  // ALWAYS CHECK YOUR UPDATES AND RESPOND ACCORDINGLY, THIS ENDPOINT ISN'T FINISHED
+  const newUser = { name, bio };
+  console.log(newUser);
+  db.update(id, newUser)
+    .then(user => {
+      console.log(user);
+      res.status(200).json(user);
+    })
+    .catch(err => console.error(err));
+});
+
+// watch for traffic in a particular computer port
+const port = 9002;
+server.listen(port, () =>
+  console.log(`\n~~~ API running on port ${port} ~~~\n`)
+);
